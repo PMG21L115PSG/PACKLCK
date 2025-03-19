@@ -169,8 +169,7 @@
                                             <div class="detail-box">
                                                 <h1 style="font-size: 20px; text-align: center; color:white;">${image.name}</h1>
                                                 <br>
-<button class="rename-btn" data-image-name="${image.name}" style="display: block; margin: auto;" data-toggle="modal" data-target="#renameModal" data-old-name="${image.name}">Manage</button>                                            </div>
-                                        </div>
+<button class="rename-btn" data-image-name="${image.name}" style="display: block; margin: auto;" onclick="window.open('manage_visitor.html?name=${image.name}', '_blank')">Manage</button>                                        </div>
                                     </div>
                                 </div>
                             </div>`
@@ -252,63 +251,68 @@
         }
 
 
-        function fetchAndDisplayVisitorLogs() {
-            var logsRef = database.ref('visitor_logs');
-            logsRef.once('value').then(function(snapshot) {
-                var logs = snapshot.val();
-                var sortedNames = Object.keys(logs).sort(); // Sort names alphabetically
+      // ...existing code...
 
-                var dateLogs = {};
+function fetchAndDisplayVisitorLogs() {
+    var logsRef = database.ref('visitor_logs');
+    logsRef.once('value').then(function(snapshot) {
+        var logs = snapshot.val();
+        var sortedNames = Object.keys(logs).sort(); // Sort names alphabetically
 
-                sortedNames.forEach(function(name) {
-                    var dates = logs[name];
-                    Object.keys(dates).forEach(function(date) {
-                        if (!dateLogs[date]) {
-                            dateLogs[date] = [];
-                        }
-                        dateLogs[date].push({ name: name, times: dates[date] });
-                    });
-                });
+        var dateLogs = {};
 
-                var sortedDates = Object.keys(dateLogs).sort(function(a, b) {
-                    return new Date(b) - new Date(a); // Sort dates in descending order
-                });
-
-                sortedDates.forEach(function(date) {
-                    var dateContainer = $('<div class="date-container"></div>');
-                    dateContainer.append(`<h3 class="date-header">Visitor Activity on ${date}</h3>`);
-
-                    dateLogs[date].forEach(function(log) {
-                        var sortedTimes = Object.keys(log.times).sort(function(a, b) {
-                            return new Date(`1970-01-01T${b}`) - new Date(`1970-01-01T${a}`); // Sort times in descending order
-                        });
-
-                        sortedTimes.forEach(function(time) {
-                            var visitorBox = $(`
-                                <div class="visitor-box" data-image-name="${log.name}">
-                                    <p>${log.name} has visited your house at ${new Date(`1970-01-01T${time}`).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} IST</p>
-                                </div>
-                            `);
-                            dateContainer.append(visitorBox);
-                        });
-                    });
-
-                    $('#visitor-log-container').append(dateContainer);
-                });
-
-                // Add click event listener to visitor boxes
-                $('.visitor-box').click(function() {
-                    var imageName = $(this).data('image-name');
-                    var targetSlide = $(`#carousel-inner .carousel-item:has(img[alt="Captured Face"][src*="${imageName}"])`).index();
-                    if (targetSlide !== -1) {
-                        $('#carouselExampleIndicators').carousel(targetSlide);
-                        $('html, body').animate({ scrollTop: $('.slider_section').offset().top }, 'slow');
-                    }
-                });
-            }).catch(function(error) {
-                console.error("Error fetching visitor logs:", error);
+        sortedNames.forEach(function(name) {
+            var dates = logs[name];
+            Object.keys(dates).forEach(function(date) {
+                if (!dateLogs[date]) {
+                    dateLogs[date] = [];
+                }
+                dateLogs[date].push({ name: name, times: dates[date] });
             });
-        }
+        });
+
+        var sortedDates = Object.keys(dateLogs).sort(function(a, b) {
+            return new Date(b) - new Date(a); // Sort dates in descending order
+        });
+
+        sortedDates.forEach(function(date) {
+            var formattedDate = new Date(date).toLocaleDateString('en-GB'); // Format date as dd-mm-yyyy
+            var dateContainer = $('<div class="date-container"></div>');
+            dateContainer.append(`<h3 class="date-header">Visitor Activity on ${formattedDate}</h3>`);
+
+            dateLogs[date].forEach(function(log) {
+                var sortedTimes = Object.keys(log.times).sort(function(a, b) {
+                    return new Date(`1970-01-01T${b}`) - new Date(`1970-01-01T${a}`); // Sort times in descending order
+                });
+
+                sortedTimes.forEach(function(time) {
+                    var visitorBox = $(`
+                        <div class="visitor-box" data-image-name="${log.name}">
+                            <p>${log.name} has visited your house at ${new Date(`1970-01-01T${time}`).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} IST</p>
+                        </div>
+                    `);
+                    dateContainer.append(visitorBox);
+                });
+            });
+
+            $('#visitor-log-container').append(dateContainer);
+        });
+
+        // Add click event listener to visitor boxes
+        $('.visitor-box').click(function() {
+            var imageName = $(this).data('image-name');
+            var targetSlide = $(`#carousel-inner .carousel-item:has(img[alt="Captured Face"][src*="${imageName}"])`).index();
+            if (targetSlide !== -1) {
+                $('#carouselExampleIndicators').carousel(targetSlide);
+                $('html, body').animate({ scrollTop: $('.slider_section').offset().top }, 'slow');
+            }
+        });
+    }).catch(function(error) {
+        console.error("Error fetching visitor logs:", error);
+    });
+}
+
+// ...existing code...
        
 
         window.onload = function() {

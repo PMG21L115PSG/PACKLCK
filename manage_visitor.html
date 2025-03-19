@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Manage Visitor</title>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+    <link href="css/style.css" rel="stylesheet" />
+    <link href="css/responsive.css" rel="stylesheet" />
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script type="text/javascript" src="js/jquery-3.4.1.min.js"></script>
+    <script type="text/javascript" src="js/bootstrap.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        .edit-icon {
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .image-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #visitorPhoto {
+            max-width: 600px; /* Increase the size */
+        }
+        .visitor-box {
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .bg-block {
+            background-color: rgb(246, 208, 208);
+            border: 2px solid rgb(241, 115, 115);
+        }
+        .bg-timed_allowance {
+            background-color: lightyellow;
+            border: 2px solid rgb(241, 179, 65);
+        }
+        .bg-allowed {
+            background-color: rgb(233, 251, 233);
+            border: 2px solid rgb(93, 236, 93);
+        }
+        .bg-none {
+            background-color: rgb(210, 237, 246);
+            border: 2px solid rgb(97, 97, 243);
+        }
+        .date-container {
+            margin-bottom: 20px;
+        }
+        .date-header {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .visit-box {
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <!-- header section starts -->
+    <header class="header_section">
+        <div class="container-fluid">
+            <nav class="navbar navbar-expand-lg custom_nav-container pt-3">
+                <a class="navbar-brand" href="index.html">
+                    <img style="height: 50px;width: 240px;"  src="images/logo.png" alt="" />
+                </a><br>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+        
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <div class="d-flex ml-auto flex-column flex-lg-row align-items-center">
+                        <ul class="navbar-nav  ">
+                            <li class="nav-item ">
+                                <a class="nav-link" href="index.html">
+                                    Home
+                                </a>
+                            <li class="nav-item">
+                                <a class="nav-link" href="contact.html">Contact Us</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="about.html">
+                                    About Us
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    <!-- end header section --><br>
+    <div class="container">
+        <div id="visitorBox" class="visitor-box bg-none">
+            <div class="image-container">
+                <img id="visitorPhoto" src="" alt="Visitor Photo" class="img-fluid">
+            </div>
+            <form id="manageForm">
+                <div class="form-group">
+                    <label for="newName">Name:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="newName" readonly>
+                        <div class="input-group-append">
+                            <span class="input-group-text edit-icon">&#9998;</span> <!-- Edit icon -->
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="visitorPermit">Visitor Permit:</label>
+                    <select class="form-control" id="visitorPermit">
+                        <option value="allowed">Allowed</option>
+                        <option value="timed_allowance">Timed Allowance</option>
+                        <option value="block">Block</option>
+                        <option value="none">None</option> <!-- Set default to none -->
+                    </select>
+                </div>
+                <button type="button" class="btn btn-primary" id="saveChangesBtn">Save Changes</button>
+            </form>
+        </div>
+        <div id="visitorLog" style="margin-top: 20px;">
+            <div id="visitor-log-container"></div>
+        </div>
+    </div>
+
+    <script>
+        var firebaseConfig = {
+            apiKey: "AIzaSyB1P2CTKVlJCHg4eD9gChOMMArU3labEwc",
+            authDomain: "pcklck-1aa5c.firebaseapp.com",
+            projectId: "pcklck-1aa5c",
+            storageBucket: "pcklck-1aa5c.appspot.com",
+            messagingSenderId: "465342878161",
+            appId: "1:465342878161:web:cbb0d80280c95ced3cd0f0",
+            databaseURL: "https://pcklck-1aa5c-default-rtdb.firebaseio.com/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        var database = firebase.database();
+        var storage = firebase.storage();
+    
+        $(document).ready(function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var oldName = urlParams.get('name');
+            $('#newName').val(oldName);
+    
+            // Fetch and display visitor photo
+            var photoRef = storage.ref(`faces/${oldName}.jpg`);
+            photoRef.getDownloadURL().then(function(url) {
+                $('#visitorPhoto').attr('src', url);
+            }).catch(function(error) {
+                console.error("Error fetching visitor photo:", error);
+            });
+    
+            // Fetch and display visitor log
+            fetchAndDisplayVisitorLogs(oldName);
+    
+            $('.edit-icon').click(function() {
+                $('#newName').prop('readonly', false).focus();
+            });
+    
+            // Fetch and set the visitor permit status
+            var permitsRef = database.ref('visitor_permits');
+            permitsRef.once('value').then(function(snapshot) {
+                var permits = snapshot.val() || {};
+                var permitStatus = 'none'; // Default to none
+    
+                Object.keys(permits).forEach(function(key) {
+                    if (permits[key][oldName]) {
+                        permitStatus = key;
+                    }
+                });
+    
+                $('#visitorPermit').val(permitStatus);
+                updateVisitorBoxBackground();
+            }).catch(function(error) {
+                console.error("Error fetching visitor permit:", error);
+            });
+    
+            $('#visitorPermit').change(function() {
+                updateVisitorBoxBackground();
+            });
+    
+            $('#saveChangesBtn').click(function() {
+                var newName = $('#newName').val().trim();
+                var visitorPermit = $('#visitorPermit').val();
+    
+                if (newName) {
+                    if (newName !== oldName) {
+                        renameFileInFirebaseStorage(oldName, newName).then(function() {
+                            setVisitorPermit(newName, visitorPermit);
+                        });
+                    } else {
+                        setVisitorPermit(newName, visitorPermit);
+                    }
+                } else {
+                    alert("New name cannot be empty.");
+                }
+            });
+    
+            function updateVisitorBoxBackground() {
+                var permit = $('#visitorPermit').val();
+                var visitorBox = $('#visitorBox');
+                visitorBox.removeClass('bg-block bg-timed_allowance bg-allowed bg-none');
+                switch (permit) {
+                    case 'block':
+                        visitorBox.addClass('bg-block');
+                        break;
+                    case 'timed_allowance':
+                        visitorBox.addClass('bg-timed_allowance');
+                        break;
+                    case 'allowed':
+                        visitorBox.addClass('bg-allowed');
+                        break;
+                    case 'none':
+                        visitorBox.addClass('bg-none');
+                        break;
+                }
+            }
+        });
+    
+        function fetchAndDisplayVisitorLogs(visitorName) {
+            var logsRef = database.ref('visitor_logs/' + visitorName);
+            logsRef.once('value').then(function(snapshot) {
+                var logs = snapshot.val();
+                if (!logs) {
+                    $('#visitor-log-container').append('<p>No visitor activity found.</p>');
+                    return;
+                }
+    
+                var dateLogs = {};
+    
+                Object.keys(logs).forEach(function(date) {
+                    if (!dateLogs[date]) {
+                        dateLogs[date] = [];
+                    }
+                    dateLogs[date].push({ name: visitorName, times: logs[date] });
+                });
+    
+                var sortedDates = Object.keys(dateLogs).sort(function(a, b) {
+                    return new Date(b) - new Date(a); // Sort dates in descending order
+                });
+    
+                sortedDates.forEach(function(date) {
+                    var formattedDate = new Date(date).toLocaleDateString('en-GB'); // Format date as dd-mm-yyyy
+                    var dateContainer = $('<div class="date-container"></div>');
+                    dateContainer.append(`<h3 class="date-header">Visitor Activity on ${formattedDate}</h3>`);
+    
+                    dateLogs[date].forEach(function(log) {
+                        var sortedTimes = Object.keys(log.times).sort(function(a, b) {
+                            return new Date(`1970-01-01T${b}`) - new Date(`1970-01-01T${a}`); // Sort times in descending order
+                        });
+    
+                        sortedTimes.forEach(function(time) {
+                            var visitBox = $(`
+                                <div class="visit-box">
+                                    <p>${log.name} has visited your house at ${new Date(`1970-01-01T${time}`).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} IST</p>
+                                </div>
+                            `);
+                            dateContainer.append(visitBox);
+                        });
+                    });
+    
+                    $('#visitor-log-container').append(dateContainer);
+                });
+    
+                // Add click event listener to visitor boxes
+                $('.visitor-box').click(function() {
+                    var imageName = $(this).data('image-name');
+                    var targetSlide = $(`#carousel-inner .carousel-item:has(img[alt="Captured Face"][src*="${imageName}"])`).index();
+                    if (targetSlide !== -1) {
+                        $('#carouselExampleIndicators').carousel(targetSlide);
+                        $('html, body').animate({ scrollTop: $('.slider_section').offset().top }, 'slow');
+                    }
+                });
+            }).catch(function(error) {
+                console.error("Error fetching visitor logs:", error);
+            });
+        }
+    
+        function renameFileInFirebaseStorage(oldName, newName) {
+            var storageRef = firebase.storage().ref();
+    
+            var oldImageRef = storageRef.child(`faces/${oldName}.jpg`);
+            var newImageRef = storageRef.child(`faces/${newName}.jpg`);
+    
+            var oldJsonRef = storageRef.child(`encodings/${oldName}.json`);
+            var newJsonRef = storageRef.child(`encodings/${newName}.json`);
+    
+            return oldImageRef.getDownloadURL().then(url => fetch(url))
+                .then(response => response.blob())
+                .then(blob => newImageRef.put(blob))
+                .then(() => oldImageRef.delete())
+                .then(() => renameJsonFile(oldJsonRef, newJsonRef))
+                .then(() => updateVisitorLogs(oldName, newName))
+                .catch(error => console.error("Error renaming files:", error));
+        }
+    
+        function renameJsonFile(oldJsonRef, newJsonRef) {
+            return oldJsonRef.getDownloadURL()
+                .then(url => fetch(url))
+                .then(response => response.blob())
+                .then(blob => newJsonRef.put(blob))
+                .then(() => oldJsonRef.delete())
+                .catch(error => {
+                    if (error.code === 'storage/object-not-found') {
+                        console.warn("JSON file not found. Only image was renamed.");
+                        return;
+                    }
+                    console.error("Error renaming JSON file:", error);
+                });
+        }
+    
+        function updateVisitorLogs(oldName, newName) {
+            var logsRef = database.ref('visitor_logs');
+    
+            return logsRef.child(oldName).once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    var visitorData = snapshot.val();
+    
+                    return logsRef.child(newName).set(visitorData)
+                        .then(() => logsRef.child(oldName).remove())
+                        .catch(error => console.error("Error renaming visitor logs:", error));
+                } else {
+                    console.warn("No visitor logs found for", oldName);
+                }
+            }).catch(error => console.error("Error fetching visitor logs:", error));
+        }
+    
+        function setVisitorPermit(name, permit) {
+            var permitsRef = database.ref('visitor_permits');
+    
+            return permitsRef.once('value').then(snapshot => {
+                var permits = snapshot.val() || {}; // Ensure permits is an object
+    
+                // Remove name from all permits
+                Object.keys(permits).forEach(key => {
+                    if (permits[key][name]) {
+                        permitsRef.child(`${key}/${name}`).remove();
+                    }
+                });
+    
+                // Add name to the selected permit
+                if (permit !== 'none') {
+                    permitsRef.child(`${permit}/${name}`).set(true);
+                }
+    
+                alert("Visitor permit updated successfully!");
+                window.close(); // Close the tab
+            }).catch(error => console.error("Error updating visitor permit:", error));
+        }
+    </script>
+</body>
+</html>

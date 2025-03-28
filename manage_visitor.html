@@ -329,27 +329,29 @@
         }
     
         function setVisitorPermit(name, permit) {
-            var permitsRef = database.ref('visitor_permits');
-    
-            return permitsRef.once('value').then(snapshot => {
-                var permits = snapshot.val() || {}; // Ensure permits is an object
-    
-                // Remove name from all permits
-                Object.keys(permits).forEach(key => {
-                    if (permits[key][name]) {
-                        permitsRef.child(`${key}/${name}`).remove();
-                    }
-                });
-    
-                // Add name to the selected permit
-                if (permit !== 'none') {
-                    permitsRef.child(`${permit}/${name}`).set(true);
+    var permitsRef = database.ref('visitor_permits');
+
+    return permitsRef.once('value').then(snapshot => {
+        var permits = snapshot.val() || {}; // Ensure permits is an object
+
+        // Remove name from all permits
+        Object.keys(permits).forEach(key => {
+            Object.keys(permits[key]).forEach(subKey => {
+                if (permits[key][subKey] === name) {
+                    permitsRef.child(`${key}/${subKey}`).remove();
                 }
-    
-                alert("Visitor permit updated successfully!");
-                window.close(); // Close the tab
-            }).catch(error => console.error("Error updating visitor permit:", error));
+            });
+        });
+
+        // Add name to the selected permit
+        if (permit !== 'none') {
+            permitsRef.child(permit).child(name).set(name);
         }
+
+        alert("Visitor permit updated successfully!");
+        window.close(); // Close the tab
+    }).catch(error => console.error("Error updating visitor permit:", error));
+}
     </script>
 </body>
 </html>

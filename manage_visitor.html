@@ -280,21 +280,26 @@
         }
     
         function renameFileInFirebaseStorage(oldName, newName) {
-            var storageRef = firebase.storage().ref();
-    
-            var oldImageRef = storageRef.child(`faces/${oldName}.jpg`);
-            var newImageRef = storageRef.child(`faces/${newName}.jpg`);
-    
-            var oldJsonRef = storageRef.child(`encodings/${oldName}.json`);
-            var newJsonRef = storageRef.child(`encodings/${newName}.json`);
-    
-            return oldImageRef.getDownloadURL().then(url => fetch(url))
-                .then(response => response.blob())
-                .then(blob => newImageRef.put(blob))
-                .then(() => oldImageRef.delete())
-                .then(() => renameJsonFile(oldJsonRef, newJsonRef))
-                .then(() => updateVisitorLogs(oldName, newName))
-                .catch(error => console.error("Error renaming files:", error));
+        var storageRef = firebase.storage().ref();
+
+        var oldImageRef = storageRef.child(`faces/${oldName}.jpg`);
+        var newImageRef = storageRef.child(`faces/${newName}.jpg`);
+
+        var oldJsonRef = storageRef.child(`encodings/${oldName}.json`);
+        var newJsonRef = storageRef.child(`encodings/${newName}.json`);
+
+        return oldImageRef.getDownloadURL().then(url => fetch(url))
+            .then(response => response.blob())
+            .then(blob => newImageRef.put(blob))
+            .then(() => oldImageRef.delete())
+            .then(() => renameJsonFile(oldJsonRef, newJsonRef))
+            .then(() => updateVisitorLogs(oldName, newName))
+            .then(() => {
+                // Update the Refresh variable in Firebase Realtime Database
+                var refreshRef = database.ref('Refresh');
+                return refreshRef.set(1);
+            })
+            .catch(error => console.error("Error renaming files:", error));
         }
     
         function renameJsonFile(oldJsonRef, newJsonRef) {
